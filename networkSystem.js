@@ -1,4 +1,4 @@
-var defaultNetworkScene = {
+var networkScene = {
   cursorTracker:null,
   nodeObjs:[],
   nodeTypes: ["host","router"],
@@ -15,7 +15,7 @@ var defaultNetworkScene = {
   linkDivs: [],
   statusBox:null,
 }
-var networkScene = defaultNetworkScene;
+//var networkScene = defaultNetworkScene;
 var hostID = 0,routerID = 0,linkID = 0;
 var hostButton,routerButton,clearButton,tooltipDiv;
 var nodeCursor;
@@ -41,10 +41,11 @@ function draw() {
     strokeWeight(0);
     fill('rgba(0,0,0,.4)');
     nodeCursor = networkScene.currNodeType == 'host' ? rect(mouseX-50,mouseY-50,94,89)
-                                                     : rect(mouseX-50,mouseY-50,102,84);
+                                                         : rect(mouseX-50,mouseY-50,102,84);
   }
   strokeWeight(5);
   if(networkScene.drawingLink){
+
     line(networkScene.linkStartCoords.x,networkScene.linkStartCoords.y,mouseX,mouseY);
   }
   networkScene.linkObjs.map(link=>{ link.active ? link.display() : null });
@@ -185,7 +186,6 @@ Link.prototype.display = function() {
 /***MOUSE FUNCTIONS***/
 //MOUSECLICKED
 function mousePressed(e){
-  console.log(networkScene);
   var currNode = nodeFromID(e.target.id),
       currDiv  = divFromID(e.target.id);
 
@@ -461,8 +461,23 @@ function clearNodes(){
   hostID = 0;
   routerID = 0;
   linkID = 0;
-  networkScene = defaultNetworkScene;
-  togglePointer();
+  networkScene = {
+    cursorTracker:null,
+    nodeObjs:[],
+    nodeTypes: ["host","router"],
+    currNodeType: null,
+    nodeDivs:[],
+    nodeHover:false,
+    linkHover: false,
+    selectedNode:null,
+    drawingNode: false,
+    drawingLink: false,
+    linkFromNode:null,
+    linkStartCoords:{x:0,y:0},
+    linkObjs:[],
+    linkDivs: [],
+    statusBox:null,
+  }
   updateStatusBox();
 }
 
