@@ -1,5 +1,6 @@
+var presetConfigs = [];
+
 var networkScene = {
-  cursorTracker:null,
   nodeObjs:[],
   nodeTypes: ["host","router"],
   currNodeType: null,
@@ -15,9 +16,10 @@ var networkScene = {
   linkDivs: [],
   statusBox:null,
 }
-//var networkScene = defaultNetworkScene;
+var logScene;
 var hostID = 0,routerID = 0,linkID = 0;
 var hostButton,routerButton,clearButton,tooltipDiv;
+var savePresetButton,loadPresetButton;
 var nodeCursor;
 var hostImg, routerImg;
 //PRELOAD
@@ -31,7 +33,6 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   createButtons();
   updateStatusBox();
-  networkScene.cursorTracker = createDiv
   background(128);
 }
 //DRAW
@@ -73,6 +74,78 @@ function createButtons() {
   clearButton.position(120,10);
   clearButton.mousePressed(toggleNode);
   clearButton.addClass("button");
+  savePresetButton = createButton("save current config","savePreset");
+  savePresetButton.position(210,10);
+  savePresetButton.mousePressed(savePreset);
+  savePresetButton.addClass("button");
+  loadPresetButton = createButton("load preset config","loadPreset");
+  loadPresetButton.position(340,10);
+  loadPresetButton.mousePressed(loadPreset);
+  loadPresetButton.addClass("button");
+  logScene = createButton("log scene","logScene");
+  logScene.position(460,10);
+  logScene.mousePressed(function(){console.log(networkScene)});
+  logScene.addClass("button");
+}
+/**************START HERE***linkObjs and linkDivs**/
+function loadPreset(){
+  var tempPreset, tempArr, tempNode;
+  if(presetConfigs.length){
+    tempPreset = presetConfigs[0];
+    clearNodes();
+    networkScene = {
+      nodeObjs:tempPreset.nodeObjs,
+      nodeTypes: ["host","router"],
+      currNodeType: null,
+      nodeDivs:tempPreset.nodeDivs,
+      nodeHover:false,
+      linkHover: false,
+      selectedNode:null,
+      drawingNode: false,
+      drawingLink: false,
+      linkFromNode:null,
+      linkStartCoords:{x:0,y:0},
+      linkObjs:tempPreset.linkObjs,
+      linkDivs: tempPreset.linkDivs,
+      statusBox:updateStatusBox(),
+    }
+
+    tempArr = [];
+    networkScene.nodeObjs.map(obj => {
+      switch(obj.type){
+        case "host":
+          tempArr.push(new Host(obj.id,obj.coords));
+          break;
+        case "router":
+          tempArr.push(new Router(obj.id,obj.coords));
+          break;
+      }
+    });
+    networkScene.nodeObjs = tempArr;
+
+    networkScene.nodeDivs.map(div => {
+      tempArr = [];
+      for(var i = 0; i < div.elt.attributes.length; i++){
+      tempArr.push(div.elt.attributes[i]);
+      }
+      tempNode = createImg(tempArr[0].nodeValue);
+      tempNode.id(tempArr[1].nodeValue);
+      tempNode.addClass(tempArr[2].nodeValue);
+      tempNode.style(tempArr[3].nodeValue);
+      tempNode.mouseOver(function(){
+        networkScene.nodeHover = true;
+      });
+      tempNode.mouseOut(function(){
+        networkScene.nodeHover = false
+      });
+    });
+  } else {
+    console.log("no preset configs saved");
+  }
+}
+
+function savePreset(){
+  presetConfigs.push(networkScene);
 }
 
 //MESSAGE
@@ -186,6 +259,7 @@ Link.prototype.display = function() {
 /***MOUSE FUNCTIONS***/
 //MOUSECLICKED
 function mousePressed(e){
+  //console.log(networkScene);
   var currNode = nodeFromID(e.target.id),
       currDiv  = divFromID(e.target.id);
 
@@ -222,7 +296,7 @@ function mousePressed(e){
       if(currNode.tooltipVisible){
         var adjustedPosition,adjX,adjY;
 
-        tooltipDiv = createDiv(createTooltip(currNode));
+        tooltipDiv = createDiv(createTooltip(currNode.type,currNode.id));
         tooltipDiv.addClass("tooltip");
         tooltipDiv.id(`${currNode.id}-tooltip`);
         adjustedPosition = checkScreenOut(mouseX,
@@ -320,35 +394,34 @@ function toggleNode(e) {
   }
 }
 
-function createTooltip(currNode){
-  //console.log(currNode.type);
+function createTooltip(nodeType,nodeID){
   var nodeDescription;
-  if(currNode.type == "host"){
+  if(nodeType == "host"){
     nodeDescription = `<div id="node-description">
                         <h4 id="layer-header">OSI Layers:</h4>
-                        <button id="appLayer"   class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Application</button>
-                        <button id="presLayer"  class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Presentation</button>
-                        <button id="sessLayer"  class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Session</button>
-                        <button id="transLayer" class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Transport</button>
-                        <button id="netLayer"   class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Network</button>
-                        <button id="dlLayer"    class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Data Link</button>
-                        <button id="phyLayer"   class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Physical</button>
+                        <button id="appLayer"   class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Application</button>
+                        <button id="presLayer"  class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Presentation</button>
+                        <button id="sessLayer"  class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Session</button>
+                        <button id="transLayer" class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Transport</button>
+                        <button id="netLayer"   class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Network</button>
+                        <button id="dlLayer"    class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Data Link</button>
+                        <button id="phyLayer"   class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Physical</button>
                        </div>`;
-  } else if(currNode.type == "router"){
+  } else if(nodeType == "router"){
     nodeDescription = `<div id="node-description">
                         <h4 id="layer-header">OSI Layers:</h4>
-                        <button id="netLayer"   class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Network</button>
-                        <button id="dlLayer"    class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Data Link</button>
-                        <button id="phyLayer"   class="layer-button" onClick=layerButtonClick(id,'${currNode.id}')>Physical</button>
+                        <button id="netLayer"   class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Network</button>
+                        <button id="dlLayer"    class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Data Link</button>
+                        <button id="phyLayer"   class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Physical</button>
                        </div>`;
-  } else if(currNode.type == "link"){
+  } else if(nodeType == "link"){
     //implement Link node class first
   }
-  var nodeName = `<h3 id="tooltip-title">${currNode.id}</h3>`,
-      createLinkButton = `<button id="link-button" class="button tooltip-button" onClick=createLink('${currNode.id}') alt="close tooltip.">create new link</button>`,
-      connectionsButton = `<button id="connections-button" class=button tooltip-button onClick=listConnections('${currNode.id}')>list connections</button`,
-      closeTTButton =    `<button id="close-tooltip-button" class="button tooltip-button" onClick=closeTooltip('${currNode.id}')></button>`,
-      removeNodeButton = `<button id="remove-node-button" class="button tooltip-button" onClick=removeNode('${currNode.id}')>remove node</button>`;
+  var nodeName = `<h3 id="tooltip-title">${nodeID}</h3>`,
+      createLinkButton = `<button id="link-button" class="button tooltip-button" onClick=createLink('${nodeID}') alt="close tooltip.">create new link</button>`,
+      connectionsButton = `<button id="connections-button" class=button tooltip-button onClick=listConnections('${nodeID}')>list connections</button`,
+      closeTTButton =    `<button id="close-tooltip-button" class="button tooltip-button" onClick=closeTooltip('${nodeID}')></button>`,
+      removeNodeButton = `<button id="remove-node-button" class="button tooltip-button" onClick=removeNode('${nodeID}')>remove node</button>`;
 
   return(
     `<div id='tooltip-header'>
@@ -458,11 +531,12 @@ function clearNodes(){
   while(links.length){
     links[0].remove();
   }
+  /*
   hostID = 0;
   routerID = 0;
   linkID = 0;
+  */
   networkScene = {
-    cursorTracker:null,
     nodeObjs:[],
     nodeTypes: ["host","router"],
     currNodeType: null,
