@@ -64,7 +64,7 @@ body {
   border-radius: 2px;
   background:#eee;
   margin:2px 0;
-  transition: all 200ms ease;
+  transition: background-color 200ms ease;
 }
 
 .button:hover{

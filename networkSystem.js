@@ -1,6 +1,7 @@
 var presetConfigs = [];
 
 var networkScene = {
+  sceneID: 1,
   nodeObjs:[],
   nodeTypes: ["host","router"],
   currNodeType: null,
@@ -10,6 +11,7 @@ var networkScene = {
   selectedNode:null,
   drawingNode: false,
   drawingLink: false,
+  removingNodes: false,
   linkFromNode:null,
   linkStartCoords:{x:0,y:0},
   linkObjs:[],
@@ -18,8 +20,8 @@ var networkScene = {
 }
 var logScene;
 var hostID = 0,routerID = 0,linkID = 0;
-var hostButton,routerButton,clearButton,tooltipDiv;
-var savePresetButton,loadPresetButton;
+var hostButton,routerButton,clearButton,removeButton,newSceneButton,tooltipDiv;
+var savePresetButton,loadPresetButton, presetSelect;
 var nodeCursor;
 var hostImg, routerImg;
 //PRELOAD
@@ -67,33 +69,106 @@ function createButtons() {
   hostButton.mousePressed(toggleNode);
   hostButton.addClass("button");
   routerButton = createButton("router","router");
-  routerButton.position(60,10);
+  routerButton.position(50,10);
   routerButton.mousePressed(toggleNode);
   routerButton.addClass("button");
   clearButton = createButton("clear nodes","clear");
-  clearButton.position(120,10);
+  clearButton.position(99,10);
   clearButton.mousePressed(toggleNode);
   clearButton.addClass("button");
+  newSceneButton = createButton("newScene","newScene");
+  newSceneButton.position(176,10);
+  newSceneButton.mousePressed(newScene);
+  newSceneButton.addClass("button");
   savePresetButton = createButton("save current config","savePreset");
-  savePresetButton.position(210,10);
+  savePresetButton.position(246,10);
   savePresetButton.mousePressed(savePreset);
   savePresetButton.addClass("button");
-  loadPresetButton = createButton("load preset config","loadPreset");
-  loadPresetButton.position(340,10);
-  loadPresetButton.mousePressed(loadPreset);
-  loadPresetButton.addClass("button");
   logScene = createButton("log scene","logScene");
-  logScene.position(460,10);
-  logScene.mousePressed(function(){console.log(networkScene)});
+  logScene.position(466,10);
+  logScene.mousePressed(function(){
+    //presetConfigs.map(config => console.log(config));
+    console.log(networkScene);
+  });
   logScene.addClass("button");
+  presetSelect = createSelect();
+  presetSelect.id("preset-select");
+  presetSelect.option("--");
+  presetSelect.option("567_Assignment_One");
+  presetSelect.option("567_Assignment_Two");
+  presetSelect.option("567_Assignment_Three");
+  presetSelect.position(363,10);
+  presetSelect.size(100,30);
+  presetSelect.changed(selectionMade);
+  removeButton = createButton("remove node","remove");
+  removeButton.position(534,10);
+  removeButton.mousePressed(toggleNode);
+  removeButton.addClass("button");
 }
-/**************START HERE***linkObjs and linkDivs**/
-function loadPreset(){
+
+function assignmentButtons(){
+  clearNodes();
+  hostButton.remove();
+  routerButton.remove();
+  clearButton.remove();
+  newSceneButton.remove();
+  savePresetButton.remove();
+}
+
+function selectionMade(e){
+  var presetID = e.target.value;
+  if(presetID == "--"){
+    //createButtons();
+    newScene();
+    return;
+  } else if(presetID.match(/567/)){
+    loadAssignmentPreset(presetID);
+  } else {
+    loadCustomPreset(parseInt(presetID.split(' ').filter(sub => +sub)));
+  }
+}
+function loadAssignmentPreset(presetID){
+  //assignmentButtons();
+  var assignmentID = presetID.split("_")[2];
+  generateAssignment(assignmentID);
+}
+
+function generateAssignment(id){
+  clearNodes();
+  var nodeObjs, nodeDivs, linkObjs, linkDivs;
+  switch(id){
+    case "One":
+      //populate node objects
+      networkScene.nodeObjs.push(new Host("host-0",{x:101,y:163}));
+      networkScene.nodeObjs.push(new Host("host-1",{x:698,y:172}));
+      networkScene.nodeObjs.push(new Router("router-0",{x:235,y:417}));
+      networkScene.nodeObjs.push(new Router("router-1",{x:532,y:425}));
+      //connect objects
+      var host0   = networkScene.nodeObjs[0],
+          host1   = networkScene.nodeObjs[1],
+          router0 = networkScene.nodeObjs[2],
+          router1 = networkScene.nodeObjs[3];
+      host0.connections.push(router0);
+      router0.connections.push(host0,router1);
+      router1.connections.push(router0,host1);
+      host1.connections.push(router1);
+      //generate node divs
+      networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
+      break;
+  }
+
+}
+function loadCustomPreset(presetID){
   var tempPreset, tempArr, tempNode;
   if(presetConfigs.length){
-    tempPreset = presetConfigs[0];
+    for(var i=0; i< presetConfigs.length; i++){
+      if(presetConfigs[i].sceneID == presetID){
+        tempPreset = presetConfigs[i].scene;
+      }
+    }
     clearNodes();
     networkScene = {
+      sceneID: tempPreset.sceneID,
       nodeObjs:tempPreset.nodeObjs,
       nodeTypes: ["host","router"],
       currNodeType: null,
@@ -103,13 +178,14 @@ function loadPreset(){
       selectedNode:null,
       drawingNode: false,
       drawingLink: false,
+      removingNodes: false,
       linkFromNode:null,
       linkStartCoords:{x:0,y:0},
       linkObjs:tempPreset.linkObjs,
       linkDivs: tempPreset.linkDivs,
       statusBox:updateStatusBox(),
     }
-
+    //
     tempArr = [];
     networkScene.nodeObjs.map(obj => {
       switch(obj.type){
@@ -122,6 +198,12 @@ function loadPreset(){
       }
     });
     networkScene.nodeObjs = tempArr;
+
+    tempArr = [];
+    networkScene.linkObjs.map(obj => {
+      tempArr.push(new Link(obj.id, obj.nodes, obj.coords, obj.active));
+    });
+    networkScene.linkObjs = tempArr;
 
     networkScene.nodeDivs.map(div => {
       tempArr = [];
@@ -145,7 +227,26 @@ function loadPreset(){
 }
 
 function savePreset(){
-  presetConfigs.push(networkScene);
+
+  if(presetConfigs.length){
+    console.log(presetConfigs)
+    for(var i=0; i< presetConfigs.length; i++){
+      if(presetConfigs[i].sceneID == networkScene.sceneID){
+        console.log("already saved: updating...");
+        presetConfigs[i] = {sceneID:presetConfigs[i].sceneID,scene:networkScene}
+        return;
+      }
+    }
+  }
+  console.log('past update')
+  var newID = networkScene.sceneID;
+  var newOption = document.createElement("option");
+  newOption.text = `Custom Network ${newID}`;
+
+  document.getElementById("preset-select").add(newOption);
+  presetConfigs.push({sceneID:newID, scene:networkScene});
+  console.log(presetConfigs);
+
 }
 
 //MESSAGE
@@ -216,19 +317,7 @@ function linkLayoverDiv(origin, slope, id, length, weight, rise){
                         : 1;
 
   var angle = (atan(slope)*(180/PI));
-  switch(relativeQuadrant){
-    case 1:
-    break;
-    case 2:
-      angle += 180;
-    break;
-    case 3:
-      angle += 180;
-    break;
-    case 4:
-      angle += 360;
-    break;
-  }
+  angle += (relativeQuadrant < 2) ? 0 : (relativeQuadrant > 3) ? 360 : 180;
 
   linkLayover.position(origin.x,origin.y);
   linkLayover.size(length,10);
@@ -242,6 +331,9 @@ function linkLayoverDiv(origin, slope, id, length, weight, rise){
   linkLayover.mouseOut(function(){
     networkScene.linkHover = false;
   });
+  linkLayover.mousePressed(function(){
+    console.log('something');
+  })
 
   linkLayover.addClass("link-layover");
   linkLayover.id(`link-${linkID}`);
@@ -262,6 +354,10 @@ function mousePressed(e){
   //console.log(networkScene);
   var currNode = nodeFromID(e.target.id),
       currDiv  = divFromID(e.target.id);
+
+  if(networkScene.removingNodes){
+    removeNode(e.target.id);
+  }
 
   if(networkScene.drawingLink){
     if(networkScene.nodeHover){
@@ -317,7 +413,7 @@ function mousePressed(e){
       }
     }
   } else if(networkScene.linkHover){
-    console.log(currNode,currDiv);
+    //console.log(currNode,currDiv);
   } else if (networkScene.drawingNode && validDropPos(mouseX,mouseY) && e.button == 0){
     var newID,newDiv;
     switch(networkScene.currNodeType){
@@ -325,18 +421,7 @@ function mousePressed(e){
         newID = `host-${hostID}`;
         //push node to nodeObjs for graph
         networkScene.nodeObjs.push(new Host(newID,{x:mouseX-50,y:mouseY-50}));
-        //make div for display
-        newDiv = createImg("images/computersprite.png");
-        newDiv.id(newID);
-        newDiv.addClass("node");
-        newDiv.position(mouseX-50,mouseY-50);
-        newDiv.mouseOver(function(){
-          networkScene.nodeHover = true;
-        });
-        newDiv.mouseOut(function(){
-          networkScene.nodeHover = false
-        });
-        networkScene.nodeDivs.push(newDiv);
+        generateDiv(newID,mouseX-50,mouseY-50);
         hostID++;
         break;
       case "router":
@@ -344,19 +429,7 @@ function mousePressed(e){
         //push node to nodeObjs for graph
         networkScene.nodeObjs.push(new Router(newID,{x:mouseX-50,y:mouseY-50}));
         //make div for display
-        newDiv = createImg("images/routersprite2.png");
-        newDiv.id(newID);
-        newDiv.addClass("node");
-        newDiv.position(mouseX-50,mouseY-50);
-        newDiv.mouseOver(function(){
-          networkScene.nodeHover = true;
-          //networkScene.selectedNode = newDiv;
-        });
-        newDiv.mouseOut(function(){
-          networkScene.nodeHover = false
-          //networkScene.selectedNode = null;
-        });
-        networkScene.nodeDivs.push(newDiv);
+        generateDiv(newID,mouseX-50,mouseY-50);
         routerID++;
         break;
       default:
@@ -366,12 +439,31 @@ function mousePressed(e){
   //console.log(networkScene.selectedNode);
 }
 
+function generateDiv(id,x,y){
+  newDiv = id.match(/host/) ? createImg("images/computersprite.png")
+                            : createImg("images/routersprite2.png");
+  newDiv.id(id);
+  newDiv.addClass("node");
+  newDiv.position(x,y);
+  //TODO Fix all this
+  newDiv.mouseOver(function(){
+    networkScene.nodeHover = true;
+    if(networkScene.removingNodes){
+      this.style("background","rgba(200,0,0,0.4)");
+    }
+  });
+  newDiv.mouseOut(function(){
+    networkScene.nodeHover = false;
+    if(networkScene.removingNodes){
+      this.style("background","rgba(0,128,128,.5)");
+    }
+  });
+  networkScene.nodeDivs.push(newDiv);
+}
+
 
 function mouseMoved() {
-  //check for cursor over line
-  if(!(networkScene.drawingLink || networkScene.drawingNode)){
 
-  }
 }
 
 function toggleNode(e) {
@@ -390,6 +482,11 @@ function toggleNode(e) {
     case "clear":
       networkScene.drawingNode = false;
       clearNodes();
+      break;
+    case "remove":
+      networkScene.drawingNode = false;
+      networkScene.drawingLink = false;
+      networkScene.removingNodes = !networkScene.removingNodes;
       break;
   }
 }
@@ -485,7 +582,7 @@ function listConnections(id){
 }
 
 function closeTooltip(id){
-  var pNode;
+  var pNode, tempArr;
   document.getElementById(id+"-tooltip").remove();
   for(var i = 0; i < networkScene.nodeObjs.length; i++){
     if(networkScene.nodeObjs[i].id == id){
@@ -497,8 +594,9 @@ function closeTooltip(id){
 }
 
 function removeNode(id){
-  var currNode = nodeFromID(id);
-  console.log(currNode, networkScene);
+  console.log(id)
+  var currNode = nodeFromID(id),
+      tempDiv;
   for(var i = 0; i < networkScene.linkObjs.length; i++){
     for(var j = 0; j < networkScene.linkObjs[i].nodes.length; j++){
       if(id == networkScene.linkObjs[i].nodes[j].id){
@@ -506,19 +604,43 @@ function removeNode(id){
       }
     }
   }
+  tempArr = networkScene.linkObjs.filter(link => !link.active).map(link => link.id);
+  tempArr.map(div => {
+    tempDiv = document.getElementById(div);
+    tempDiv.remove();
+  });
+  networkScene.linkDivs = networkScene.linkDivs.map(link => {
+    for(i in tempArr){
+      if(tempArr[i].id == id){
+        return false;
+      }
+    }
+  });
   networkScene.linkObjs = networkScene.linkObjs.filter(link => link.active);
   networkScene.nodeDivs = networkScene.nodeDivs.filter(div => div.elt.id != id);
   networkScene.nodeObjs = networkScene.nodeObjs.filter(obj => obj.id != id);
 
+
   for(var i = 0; i < networkScene.nodeObjs.length; i++){
     networkScene.nodeObjs[i].connections = networkScene.nodeObjs[i].connections.filter(connection => connection.id != id);
   }
-  document.getElementById(id+"-tooltip").remove();
-  document.getElementById(id).remove();
+
+  if(tempDiv = document.getElementById(id+"-tooltip")){
+    tempDiv.remove();
+  }
+  if(tempDiv = document.getElementById(id)){
+    if(tempDiv.className == "node"){
+      tempDiv.remove();
+    }
+  }
   networkScene.nodeHover = false;
 }
 
-function clearNodes(){
+function newScene(){
+  clearNodes(true);
+}
+
+function clearNodes(newScene){
   var tooltips = document.getElementsByClassName("tooltip");
   while(tooltips.length){
     tooltips[0].remove();
@@ -537,6 +659,7 @@ function clearNodes(){
   linkID = 0;
   */
   networkScene = {
+    sceneID: newScene ? ++networkScene.sceneID : networkScene.sceneID,
     nodeObjs:[],
     nodeTypes: ["host","router"],
     currNodeType: null,
@@ -546,6 +669,7 @@ function clearNodes(){
     selectedNode:null,
     drawingNode: false,
     drawingLink: false,
+    removingNodes: false,
     linkFromNode:null,
     linkStartCoords:{x:0,y:0},
     linkObjs:[],
