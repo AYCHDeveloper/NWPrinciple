@@ -69,7 +69,7 @@ body {
 }
 
 .button:hover{
-  background:#ddd;
+    background:#ddd;
     box-shadow: 0 0 5px rgba(0,0,0,.3);
 }
 
@@ -140,9 +140,8 @@ body {
   flex-direction: column;
   align-content: center;
   padding: 5px;
+  margin:0;
   background:#eee;
-  width:200px;
-  height:98%;
   color:#000;
   box-shadow: -2px 0 5px rgba(0,0,0,.3);
   border: 1px solid #eee;

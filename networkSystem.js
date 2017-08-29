@@ -18,6 +18,8 @@ var networkScene = {
   linkObjs:[],
   linkDivs: [],
   statusBox:null,
+  statusHover: false,
+  relativeCoords:null
 }
 var logScene, canvas;
 var hostID = 0,routerID = 0,linkID = 0;
@@ -68,10 +70,6 @@ function draw() {
 function windowResized(){
   if(networkScene.presetDrawn){
     generateAssignment(networkScene.presetDrawn);
-  }
-  if(windowWidth >= 400){
-	createButtons();
-    networkScene.statusBox.position(windowWidth-210,0);
   }
 
   resizeCanvas(windowWidth,windowHeight);
@@ -309,6 +307,8 @@ function loadCustomPreset(presetID){
       linkObjs:tempPreset.linkObjs,
       linkDivs: tempPreset.linkDivs,
       statusBox:updateStatusBox(),
+      statusHover: false,
+      relativeCoords:null
     }
     //
     tempArr = [];
@@ -677,15 +677,17 @@ function updateStatusBox(){
   var statusBox = createDiv(`
                     <h3 id="status-header">Network Status</h3>
                     <div id="status-info">
-                      <div>${networkScene.drawingLink}</div>
-					  <div>${networkScene.drwaingNode}</div>
-					  <div>${networkScene.removingNodes}</div>
-					  <div>${networkScene.nodeHover}</div>
-					  <div>${networkScene.sceneID}</div>
                     </div>`
                   );
-  statusBox.position(windowWidth-210,0);
+  statusBox.size(360,80)
+  statusBox.position(500,2);
   statusBox.id("status-box");
+  statusBox.mouseOver(function(){
+    networkScene.statusHover = true;
+  });
+  statusBox.mouseOut(function(){
+    networkScene.statusHover = false;
+  });
   networkScene.statusBox = statusBox;
 }
 
@@ -798,6 +800,8 @@ function clearNodes(newScene){
     linkObjs:[],
     linkDivs: [],
     statusBox:null,
+    statusHover: false,
+    relativeCoords: null
   }
   updateStatusBox();
 }
