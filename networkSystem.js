@@ -2,6 +2,7 @@ var presetConfigs = [];
 
 var networkScene = {
   sceneID: 1,
+  presetDrawn: null,
   nodeObjs:[],
   nodeTypes: ["host","router"],
   currNodeType: null,
@@ -53,7 +54,8 @@ function draw() {
   if(networkScene.removingNodes && !networkScene.nodeHover){
 	strokeWeight(0);
 	fill('rgba(200,0,0,.4)');
-	nodeCursor = rect(mouseX-25,mouseY-25,50,50);
+	nodeCursor = rect(mouseX-20,mouseY-20,40,40);
+
   }
   strokeWeight(5);
   if(networkScene.drawingLink){
@@ -64,10 +66,14 @@ function draw() {
 }
 
 function windowResized(){
+  if(networkScene.presetDrawn){
+    generateAssignment(networkScene.presetDrawn);
+  }
   if(windowWidth >= 400){
 	createButtons();
     networkScene.statusBox.position(windowWidth-210,0);
   }
+
   resizeCanvas(windowWidth,windowHeight);
   background(128);
 }
@@ -145,39 +151,133 @@ function loadAssignmentPreset(presetID){
 
 function generateAssignment(id){
   clearNodes();
+  networkScene.presetDrawn = id;
   var nodeObjs, nodeDivs, linkObjs, linkDivs;
+  var blockDistX = windowWidth/12,
+      blockDistY = windowHeight/12;
 
+  function blockCoords(x,y){
+    return({x:x*blockDistX,y:y*blockDistY});
+  }
+  function adjLinkCoords(node1,node2){
+    var shift = 50;
+    return({
+      x1:node1.coords.x + shift,
+      y1:node1.coords.y + shift,
+      x2:node2.coords.x + shift,
+      y2:node2.coords.y + shift
+    })
+  }
+  function makeConnection(origin, ...connections){
+    origin.connections.push(...connections);
+  }
   switch(id){
 	  //USE AS TEMPLATE VVVVV
     case "One":
-	  var blockDistX = windowWidth/12,
-		  blockDistY = windowHeight/12;
-	  var h0Coords = {x:1*blockDistX,y:3*blockDistY}, 
-		  h1Coords = {x:7*blockDistX,y:3*blockDistY}, 
-		  r0Coords = {x:2*blockDistX,y:8*blockDistY}, 
-		  r1Coords = {x:6*blockDistX,y:8*blockDistY};
+      [
+        ["host-0",  blockCoords(1,3)],
+        ["host-1",  blockCoords(7,3)],
+        ["router-0",blockCoords(2,8)],
+        ["router-1",blockCoords(6,8)]
+      ].map(pair => {
+          networkScene.nodeObjs.push(new Host(...pair));
+        });
 
-      //populate node objects
-      networkScene.nodeObjs.push(new Host("host-0",h0Coords));
-      networkScene.nodeObjs.push(new Host("host-1",h1Coords));
-      networkScene.nodeObjs.push(new Router("router-0",r0Coords));
-      networkScene.nodeObjs.push(new Router("router-1",r1Coords));
+        //connect objects
+        var [host0, host1, router0, router1] = [...networkScene.nodeObjs];
+        makeConnection(host0, router0);
+        makeConnection(host1, router1);
+        makeConnection(router0, host0, router1);
+        makeConnection(router1, router0, host1);
+
+
+        //generate node divs
+        networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
+    	  networkScene.linkObjs.push(...[
+      	  (new Link("link-0",[host0,router0],adjLinkCoords(host0,router0),true)),
+      		(new Link("link-1",[router0,router1],adjLinkCoords(router0,router1),true)),
+      		(new Link("link-2",[router1,host1],adjLinkCoords(router1,host1),true))
+    	  ]);
+      break;
+    case "Two":
+    [
+      ["host-0",  blockCoords(1,3)],
+      ["host-1",  blockCoords(7,3)],
+      ["host-2",  blockCoords(4.5,2)],
+      ["router-0",blockCoords(2,8)],
+      ["router-1",blockCoords(6,8)],
+      ["router-2",blockCoords(3,5)],
+    ].map(pair => {
+        networkScene.nodeObjs.push(new Host(...pair));
+      });
+
       //connect objects
-      var host0   = networkScene.nodeObjs[0],
-          host1   = networkScene.nodeObjs[1],
-          router0 = networkScene.nodeObjs[2],
-          router1 = networkScene.nodeObjs[3];
-      host0.connections.push(router0);
-      router0.connections.push(host0,router1);
-      router1.connections.push(router0,host1);
-      host1.connections.push(router1);
+      var [host0, host1, host2, router0, router1, router2] = [...networkScene.nodeObjs];
+      makeConnection(host0, router0);
+      makeConnection(host1, router1);
+      makeConnection(router0, host0, router1, router2);
+      makeConnection(router1, router0, host1);
+      makeConnection(router2, router0, host2);
+
+
       //generate node divs
       networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
-	  networkScene.linkObjs.push(...[
-	    (new Link("link-0",[host0,router0],{x1:host0.coords.x+50,y1:host0.coords.y+50,x2:router0.coords.x+50,y2:router0.coords.y+50},true)),
-		(new Link("link-1",[router0,router1],{x1:router0.coords.x+50,y1:router0.coords.y+50,x2:router1.coords.x+50,y2:router1.coords.y+50},true)),
-		(new Link("link-2",[router1,host1],{x1:router1.coords.x+50,y1:router1.coords.y+50,x2:host1.coords.x+50,y2:host1.coords.y+50},true))
-	  ]);
+      networkScene.linkObjs.push(...[
+        (new Link("link-0",[host0,router0],adjLinkCoords(host0,router0),true)),
+        (new Link("link-1",[router0,router1],adjLinkCoords(router0,router1),true)),
+        (new Link("link-2",[router1,host1],adjLinkCoords(router1,host1),true)),
+        (new Link("link-3",[router0,router2],adjLinkCoords(router0,router2),true)),
+        (new Link("link-4",[router2,host2],adjLinkCoords(router2,host2),true))
+      ]);
+      break;
+    case "Three":
+      [
+        ["host-0",  blockCoords(0,4)],
+        ["host-1",  blockCoords(8.5,4)],
+        ["router-0",blockCoords(1.5,4)],
+        ["router-1",blockCoords(2.5,2)],
+        ["router-2",blockCoords(2.5,6)],
+        ["router-3",blockCoords(3.5,4)],
+        ["router-4",blockCoords(5,4)],
+        ["router-5",blockCoords(6,2)],
+        ["router-6",blockCoords(7,4)],
+        ["router-7",blockCoords(6,6)],
+      ].map(pair => {
+          networkScene.nodeObjs.push(new Host(...pair));
+        });
+
+        //connect objects
+        var [host0, host1,
+             router0, router1, router2, router3,
+             router4, router5, router6, router7] = [...networkScene.nodeObjs];
+        makeConnection(host0, router0);
+        makeConnection(router0, host0, router1, router2);
+        makeConnection(router1, router0, router3, router5);
+        makeConnection(router2, router0, router3, router7);
+        makeConnection(router3, router1, router2, router4);
+        makeConnection(router4, router3, router5, router7);
+        makeConnection(router5, router1, router4, router6);
+        makeConnection(router6, host1, router5, router7);
+        makeConnection(router7, router2, router4, router6);
+
+
+        //generate node divs
+        networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
+        networkScene.linkObjs.push(...[
+          (new Link("link-0",[host0,router0],adjLinkCoords(host0,router0),true)),
+          (new Link("link-1",[router0,router1],adjLinkCoords(router0,router1),true)),
+          (new Link("link-2",[router0,router2],adjLinkCoords(router0,router2),true)),
+          (new Link("link-3",[router2,router3],adjLinkCoords(router2,router3),true)),
+          (new Link("link-4",[router1,router3],adjLinkCoords(router1,router3),true)),
+          (new Link("link-5",[router1,router5],adjLinkCoords(router1,router5),true)),
+          (new Link("link-6",[router3,router4],adjLinkCoords(router3,router4),true)),
+          (new Link("link-7",[router2,router7],adjLinkCoords(router2,router7),true)),
+          (new Link("link-8",[router4,router5],adjLinkCoords(router4,router5),true)),
+          (new Link("link-9",[router4,router7],adjLinkCoords(router4,router7),true)),
+          (new Link("link-10",[router5,router6],adjLinkCoords(router5,router6),true)),
+          (new Link("link-11",[router6,router7],adjLinkCoords(router6,router7),true)),
+          (new Link("link-12",[router6,host1],adjLinkCoords(router6,host1),true)),
+        ]);
       break;
   }
 
@@ -193,6 +293,7 @@ function loadCustomPreset(presetID){
     clearNodes();
     networkScene = {
       sceneID: tempPreset.sceneID,
+      presetDrawn: null,
       nodeObjs:tempPreset.nodeObjs,
       nodeTypes: ["host","router"],
       currNodeType: null,
@@ -568,7 +669,7 @@ function updateStatusBox(){
   if(currBox){
     currBox.remove();
   }
-  
+
   var action = networkScene.currNodeType ? `Place ${networkScene.currNodeType} node.`
                                          : "Free select.";
 
@@ -681,6 +782,7 @@ function clearNodes(newScene){
   */
   networkScene = {
     sceneID: newScene ? ++networkScene.sceneID : networkScene.sceneID,
+    presetDrawn: null,
     nodeObjs:[],
     nodeTypes: ["host","router"],
     currNodeType: null,
