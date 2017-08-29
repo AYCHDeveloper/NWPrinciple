@@ -21,6 +21,11 @@ var networkScene = {
   statusHover: false,
   relativeCoords:null
 }
+var networkGraph = {
+  nodes:[],
+  edges:[],
+  adjList:[],
+}
 var logScene, canvas;
 var hostID = 0,routerID = 0,linkID = 0;
 var hostButton,routerButton,clearButton,removeButton,newSceneButton,headerDiv,tooltipDiv;
@@ -149,6 +154,7 @@ function loadAssignmentPreset(presetID){
 
 function generateAssignment(id){
   clearNodes();
+  clearGraph();
   networkScene.presetDrawn = id;
   var nodeObjs, nodeDivs, linkObjs, linkDivs;
   var blockDistX = windowWidth/12,
@@ -188,6 +194,8 @@ function generateAssignment(id){
         makeConnection(router0, host0, router1);
         makeConnection(router1, router0, host1);
 
+        //generate graph object
+        generateGraph();
 
         //generate node divs
         networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
@@ -217,6 +225,8 @@ function generateAssignment(id){
       makeConnection(router1, router0, host1);
       makeConnection(router2, router0, host2);
 
+      //generate graph object
+      generateGraph();
 
       //generate node divs
       networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
@@ -249,6 +259,7 @@ function generateAssignment(id){
              router0, router1, router2, router3,
              router4, router5, router6, router7] = [...networkScene.nodeObjs];
         makeConnection(host0, router0);
+        makeConnection(host1, router6);
         makeConnection(router0, host0, router1, router2);
         makeConnection(router1, router0, router3, router5);
         makeConnection(router2, router0, router3, router7);
@@ -258,6 +269,8 @@ function generateAssignment(id){
         makeConnection(router6, host1, router5, router7);
         makeConnection(router7, router2, router4, router6);
 
+        //generate graph object
+        generateGraph();
 
         //generate node divs
         networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
@@ -278,8 +291,29 @@ function generateAssignment(id){
         ]);
       break;
   }
-
 }
+
+function generateGraph(){
+  networkScene.nodeObjs.map(obj => {
+    networkGraph.nodes.push(obj.id);
+    networkGraph.edges.push(obj.connections)
+  })
+//issue here
+  for(var i = 0; i < networkGraph.nodes.length; i++){
+    networkGraph.adjList.push({node: networkGraph.nodes[i],
+                               edges: networkGraph.edges[i]});
+  }
+  console.log(networkGraph)
+}
+
+function clearGraph(){
+  networkGraph = {
+    nodes:[],
+    edges:[],
+    adjList:[]
+  }
+}
+
 function loadCustomPreset(presetID){
   var tempPreset, tempArr, tempNode;
   if(presetConfigs.length){
