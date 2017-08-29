@@ -173,10 +173,10 @@ function generateAssignment(id){
 	  //USE AS TEMPLATE VVVVV
     case "One":
       [
-        ["host-0",  blockCoords(1,3)],
-        ["host-1",  blockCoords(7,3)],
-        ["router-0",blockCoords(2,8)],
-        ["router-1",blockCoords(6,8)]
+        ["host-0",  blockCoords(2,4)],
+        ["host-1",  blockCoords(8,4)],
+        ["router-0",blockCoords(3,9)],
+        ["router-1",blockCoords(7,9)]
       ].map(pair => {
           networkScene.nodeObjs.push(new Host(...pair));
         });
@@ -199,12 +199,12 @@ function generateAssignment(id){
       break;
     case "Two":
     [
-      ["host-0",  blockCoords(1,3)],
-      ["host-1",  blockCoords(7,3)],
-      ["host-2",  blockCoords(4.5,2)],
-      ["router-0",blockCoords(2,8)],
-      ["router-1",blockCoords(6,8)],
-      ["router-2",blockCoords(3,5)],
+      ["host-0",  blockCoords(2,4)],
+      ["host-1",  blockCoords(8,4)],
+      ["host-2",  blockCoords(5.5,3)],
+      ["router-0",blockCoords(3,9)],
+      ["router-1",blockCoords(7,9)],
+      ["router-2",blockCoords(4,6)],
     ].map(pair => {
         networkScene.nodeObjs.push(new Host(...pair));
       });
@@ -230,16 +230,16 @@ function generateAssignment(id){
       break;
     case "Three":
       [
-        ["host-0",  blockCoords(0,4)],
-        ["host-1",  blockCoords(8.5,4)],
-        ["router-0",blockCoords(1.5,4)],
-        ["router-1",blockCoords(2.5,2)],
-        ["router-2",blockCoords(2.5,6)],
-        ["router-3",blockCoords(3.5,4)],
-        ["router-4",blockCoords(5,4)],
-        ["router-5",blockCoords(6,2)],
-        ["router-6",blockCoords(7,4)],
-        ["router-7",blockCoords(6,6)],
+        ["host-0",  blockCoords(1,6)],
+        ["host-1",  blockCoords(9.5,6)],
+        ["router-0",blockCoords(2.5,6)],
+        ["router-1",blockCoords(3.5,4)],
+        ["router-2",blockCoords(3.5,8)],
+        ["router-3",blockCoords(4.5,6)],
+        ["router-4",blockCoords(6,6)],
+        ["router-5",blockCoords(7,4)],
+        ["router-6",blockCoords(8,6)],
+        ["router-7",blockCoords(7,8)],
       ].map(pair => {
           networkScene.nodeObjs.push(new Host(...pair));
         });
@@ -885,7 +885,7 @@ function checkScreenOut(x,y,w,h){
 }
 
 function validDropPos(x,y){
-  return (x > 50 && x < windowWidth - 255 && y > 100 && y < windowHeight - 30);
+  return (x > 50 && x < windowWidth - 50 && y > 150 && y < windowHeight - 30);
 }
 
 function togglePointer(){
