@@ -199,9 +199,6 @@ function generateAssignment(id){
         makeConnection(router0, host0.id, router1.id);
         makeConnection(router1, router0.id, host1.id);
 
-        //generate graph object
-        generateGraph();
-
         //generate node divs
         networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
     	  networkScene.linkObjs.push(...[
@@ -209,27 +206,7 @@ function generateAssignment(id){
       		(new Link("link-1",[router0,router1],adjLinkCoords(router0,router1),true)),
       		(new Link("link-2",[router1,host1],adjLinkCoords(router1,host1),true))
     	  ]);
-        ////////////////////////////here
-        var adjlist = {},
-            tempID1, tempID2,
-            tempW1,  tempW2;
-        for(var i = 0; i < networkScene.linkObjs.length; i++){
-          for(var j = 0; j < networkScene.linkObjs[i].nodes.length; j++){
-            tempID1 = networkScene.linkObjs[i].nodes[0].id;
-            tempID2 = networkScene.linkObjs[i].nodes[1].id;
-
-            if(!adjlist[tempID1]){
-              adjlist[tempID1] = "";
-            }
-            adjlist[tempID1] += `${tempID2}$%`;
-            if(!adjlist[tempID2]){
-              adjlist[tempID2] = "";
-            }
-            adjlist[tempID2] += `${tempID1}$%`;
-          }
-        }
-        console.log(adjlist)
-        //var adjListKeys = Object.keys(adjlist);
+        generateGraph();
       break;
     case "Two":
     [
@@ -254,9 +231,6 @@ function generateAssignment(id){
       makeConnection(router1, router0, host1);
       makeConnection(router2, router0, host2);
 
-      //generate graph object
-      generateGraph();
-
       //generate node divs
       networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
       networkScene.linkObjs.push(...[
@@ -266,6 +240,8 @@ function generateAssignment(id){
         (new Link("link-3",[router0,router2],adjLinkCoords(router0,router2),true)),
         (new Link("link-4",[router2,host2],adjLinkCoords(router2,host2),true))
       ]);
+
+      generateGraph();
       break;
     case "Three":
       [
@@ -302,9 +278,6 @@ function generateAssignment(id){
         makeConnection(router6, host1, router5, router7);
         makeConnection(router7, router2, router4, router6);
 
-        //generate graph object
-        generateGraph();
-
         //generate node divs
         networkScene.nodeObjs.map(obj => generateDiv(obj.id,obj.coords.x,obj.coords.y));
         networkScene.linkObjs.push(...[
@@ -322,21 +295,50 @@ function generateAssignment(id){
           (new Link("link-11",[router6,router7],adjLinkCoords(router6,router7),true)),
           (new Link("link-12",[router6,host1],adjLinkCoords(router6,host1),true)),
         ]);
+
+        generateGraph();
       break;
   }
 }
 
 function generateGraph(){
-  networkScene.nodeObjs.map(obj => {
-    networkGraph.nodes.push(obj.id);
-    networkGraph.edges.push(obj.connections)
-  })
-//issue here
-  for(var i = 0; i < networkGraph.nodes.length; i++){
-    networkGraph.adjList.push({node: networkGraph.nodes[i],
-                               edges: networkGraph.edges[i]});
+  ////////////////////////////here
+  var adjList = {},
+      tempID1, tempID2,
+      msg1Weight, msg2Weight;
+  for(var i = 0; i < networkScene.linkObjs.length; i++){
+    for(var j = 0; j < networkScene.linkObjs[i].nodes.length; j++){
+      tempID1 = networkScene.linkObjs[i].nodes[0].id;
+      tempID2 = networkScene.linkObjs[i].nodes[1].id;
+      msg1Weight = networkScene.linkObjs[i].weight.msg1;
+      msg2Weight = networkScene.linkObjs[i].weight.msg2;
+
+      if(!adjList[tempID1]){
+        adjList[tempID1] = "";
+      }
+      adjList[tempID1] += `${tempID2}$${msg1Weight}$${msg2Weight}%`;
+      if(!adjList[tempID2]){
+        adjList[tempID2] = "";
+      }
+      adjList[tempID2] += `${tempID1}$${msg1Weight}$${msg2Weight}%`;
+    }
   }
-  //console.log(networkGraph)
+  //console.log(adjList)
+  var adjListKeys = Object.keys(adjList), tempArr, nodeID, w1, w2, tempObj;
+  adjListKeys.map(key => {
+    adjList[key] = adjList[key].split("%").filter(str => +str != 0)
+    adjList[key] = adjList[key].map(str => {
+      tempArr = str.split("$");
+      nodeID = tempArr[0];
+      w1 = tempArr[1];
+      w2 = tempArr[2];
+      tempObj = {}
+      tempObj[nodeID] = {msg1:w1, msg2:w2}
+      return tempObj;
+    })
+  })
+  networkGraph = adjList;
+  console.log(networkGraph)
 }
 
 function clearGraph(){
