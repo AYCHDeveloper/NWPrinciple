@@ -95,6 +95,7 @@ body {
 .layer-button:hover {
   color:#666;
   background-color: #ddd;
+  cursor: pointer;
 }
 #layer-header{
   width: 50%;
@@ -184,4 +185,76 @@ body {
 	z-index:3;
 }
 #header-container:hover{
+}
+
+#application-layover {
+  display: flex;
+  flex-direction: column;
+  padding:5px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+  background: #fff;
+  z-index: 4;
+  transition: box-shadow 200ms ease;
+}
+#application-layover:hover{
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+#application-layover-header{
+  display: flex;
+  flex-direction: row;
+}
+#application-layover-title{
+  margin: 5px;
+}
+#application-layover-content{
+  display: flex;
+  flex-direction: column;
+  height:100%;
+  width:100%;
+  background: #ddd;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.4);
+}
+#application-layover-content:hover{
+
+}
+#close-app-button{
+  padding:0;
+  width:14px;
+  height:14px;
+  border-radius: 50%;
+  margin: 0 0 auto auto;
+  background: rgba(200,0,0,.3);
+  transition: all 200ms ease;
+}
+#close-app-button:hover{
+  background: rgba(200,0,0,.6);
+}
+
+#message-fields {
+  display: flex;
+  flex-direction: column;
+  height:87%;
+  width:94%;
+  margin: 8px auto;
+  padding: 5px;
+  background: #fff;
+  box-shadow: 0 0 5px rgba(0,0,0,0.4);
+}
+.message-input{
+  margin: 5px;
+}
+
+#list-nodes-button{
+  width:140px;
+  margin:5px 5px 5px 0;
+}
+
+#list-nodes{
+  width:100%;
+  height:100px;
+  background: #eee;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+}
+#send-messages {
+  margin: 5px auto;
 }

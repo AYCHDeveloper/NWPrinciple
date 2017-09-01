@@ -19,7 +19,8 @@ var networkScene = {
   linkDivs: [],
   statusBox:null,
   statusHover: false,
-  relativeCoords:null
+  relativeCoords:null,
+  appLayoverOpen: false,
 }
 var networkGraph = {
   nodes:[],
@@ -180,19 +181,23 @@ function generateAssignment(id){
     case "One":
       [
         ["host-0",  blockCoords(2,4)],
-        ["host-1",  blockCoords(8,4)],
+        ["host-1",  blockCoords(8,4)]
+      ].map(pair => {
+          networkScene.nodeObjs.push(new Host(...pair));
+        });
+      [
         ["router-0",blockCoords(3,9)],
         ["router-1",blockCoords(7,9)]
       ].map(pair => {
-          networkScene.nodeObjs.push(new Host(...pair));
+          networkScene.nodeObjs.push(new Router(...pair));
         });
 
         //connect objects
         var [host0, host1, router0, router1] = [...networkScene.nodeObjs];
-        makeConnection(host0, router0);
-        makeConnection(host1, router1);
-        makeConnection(router0, host0, router1);
-        makeConnection(router1, router0, host1);
+        makeConnection(host0, router0.id);
+        makeConnection(host1, router1.id);
+        makeConnection(router0, host0.id, router1.id);
+        makeConnection(router1, router0.id, host1.id);
 
         //generate graph object
         generateGraph();
@@ -204,19 +209,43 @@ function generateAssignment(id){
       		(new Link("link-1",[router0,router1],adjLinkCoords(router0,router1),true)),
       		(new Link("link-2",[router1,host1],adjLinkCoords(router1,host1),true))
     	  ]);
+        ////////////////////////////here
+        var adjlist = {},
+            tempID1, tempID2,
+            tempW1,  tempW2;
+        for(var i = 0; i < networkScene.linkObjs.length; i++){
+          for(var j = 0; j < networkScene.linkObjs[i].nodes.length; j++){
+            tempID1 = networkScene.linkObjs[i].nodes[0].id;
+            tempID2 = networkScene.linkObjs[i].nodes[1].id;
+
+            if(!adjlist[tempID1]){
+              adjlist[tempID1] = "";
+            }
+            adjlist[tempID1] += `${tempID2}$%`;
+            if(!adjlist[tempID2]){
+              adjlist[tempID2] = "";
+            }
+            adjlist[tempID2] += `${tempID1}$%`;
+          }
+        }
+        console.log(adjlist)
+        //var adjListKeys = Object.keys(adjlist);
       break;
     case "Two":
     [
       ["host-0",  blockCoords(2,4)],
       ["host-1",  blockCoords(8,4)],
       ["host-2",  blockCoords(5.5,3)],
-      ["router-0",blockCoords(3,9)],
-      ["router-1",blockCoords(7,9)],
-      ["router-2",blockCoords(4,6)],
     ].map(pair => {
         networkScene.nodeObjs.push(new Host(...pair));
       });
-
+    [
+      ["router-0",blockCoords(3,9)],
+      ["router-1",blockCoords(7,9)],
+      ["router-2",blockCoords(4,6)]
+    ].map(pair => {
+        networkScene.nodeObjs.push(new Router(...pair));
+      });
       //connect objects
       var [host0, host1, host2, router0, router1, router2] = [...networkScene.nodeObjs];
       makeConnection(host0, router0);
@@ -241,7 +270,11 @@ function generateAssignment(id){
     case "Three":
       [
         ["host-0",  blockCoords(1,6)],
-        ["host-1",  blockCoords(9.5,6)],
+        ["host-1",  blockCoords(9.5,6)]
+      ].map(pair => {
+          networkScene.nodeObjs.push(new Host(...pair));
+        });
+      [
         ["router-0",blockCoords(2.5,6)],
         ["router-1",blockCoords(3.5,4)],
         ["router-2",blockCoords(3.5,8)],
@@ -249,9 +282,9 @@ function generateAssignment(id){
         ["router-4",blockCoords(6,6)],
         ["router-5",blockCoords(7,4)],
         ["router-6",blockCoords(8,6)],
-        ["router-7",blockCoords(7,8)],
+        ["router-7",blockCoords(7,8)]
       ].map(pair => {
-          networkScene.nodeObjs.push(new Host(...pair));
+          networkScene.nodeObjs.push(new Router(...pair));
         });
 
         //connect objects
@@ -303,7 +336,7 @@ function generateGraph(){
     networkGraph.adjList.push({node: networkGraph.nodes[i],
                                edges: networkGraph.edges[i]});
   }
-  console.log(networkGraph)
+  //console.log(networkGraph)
 }
 
 function clearGraph(){
@@ -342,7 +375,8 @@ function loadCustomPreset(presetID){
       linkDivs: tempPreset.linkDivs,
       statusBox:updateStatusBox(),
       statusHover: false,
-      relativeCoords:null
+      relativeCoords:null,
+      appLayoverOpen: false,
     }
     //
     tempArr = [];
@@ -413,7 +447,7 @@ function Message(){
 function Host(id,coords) {
   this.type = "host";
   this.id = id;
-  this.data = null;
+  this.data = [];
   this.connections = [];
   this.coords = coords;
   this.layers = {
@@ -436,14 +470,15 @@ Host.prototype.receiveData = function(data) {
 function Router(id,coords) {
   this.type = "router";
   this.id = id;
-  this.data = null;
+  this.data = [];
   this.connections = [];
   this.coords = coords;
   this.layers = {
     network:[],
     dataLink:[],
     physical:[],
-  }
+  },
+  this.tooltipVisible = false;
 }
 Router.prototype.display = function() {
 }
@@ -451,15 +486,18 @@ Router.prototype.display = function() {
 function Link(id, nodes, coords, active) {
   this.type= "link";
   this.id = id;
-  this.data = null;
+  this.data = [];
   this.nodes = nodes;
   this.coords = coords;
   this.active = active;
-  this.weight = 0;
+  this.weight = {msg1:Math.floor(Math.random()*7)+1,msg2:Math.floor(Math.random()*7)+1};
+  this.faulty = false;
+  this.faultRate = 0;
   this.rise = -(this.coords.y2 - this.coords.y1);
   this.run = this.coords.x2 - this.coords.x1;
   this.length = sqrt(this.run**2 + this.rise**2);
   this.slope = this.rise/this.run;
+  this.tooltipVisible = false;
   this.layoverDiv = linkLayoverDiv({x:this.coords.x1,y:this.coords.y1}, this.slope, this.id, this.length, this.weight, this.rise);
 }
 
@@ -487,12 +525,12 @@ function linkLayoverDiv(origin, slope, id, length, weight, rise){
   linkLayover.mouseOut(function(){
     networkScene.linkHover = false;
   });
-  linkLayover.mousePressed(function(){
-    console.log('link clicked');
-  })
-
   linkLayover.addClass("link-layover");
   linkLayover.id(`link-${linkID}`);
+  linkLayover.mousePressed(function(){
+    linkToolTip.tooltipVisible = true;
+    linkToolTip(linkLayover.id());
+  });
   networkScene.linkDivs.push(linkLayover);
   linkID++;
 }
@@ -523,8 +561,8 @@ function mousePressed(e){
   if(networkScene.drawingLink){
     if(networkScene.nodeHover){
       networkScene.drawingLink = false;
-      networkScene.linkFromNode.connections.push(currNode);
-      currNode.connections.push(networkScene.linkFromNode);
+      networkScene.linkFromNode.connections.push(currNode.id);
+      currNode.connections.push(networkScene.linkFromNode.id);
       var newLinkID = `link-${linkID}`,
           newLinkNodes = [networkScene.linkFromNode,currNode],
           newLinkCoords = {
@@ -549,24 +587,7 @@ function mousePressed(e){
       networkScene.selectedNode = currNode.id;
       currNode.tooltipVisible = !currNode.tooltipVisible;
       if(currNode.tooltipVisible){
-        var adjustedPosition,adjX,adjY;
-
-        tooltipDiv = createDiv(createTooltip(currNode.type,currNode.id));
-        tooltipDiv.addClass("tooltip");
-        tooltipDiv.id(`${currNode.id}-tooltip`);
-        adjustedPosition = checkScreenOut(mouseX,
-                                          mouseY,
-                                          tooltipDiv.size().width,
-                                          tooltipDiv.size().height);
-        adjX = adjustedPosition.x;
-        adjY = adjustedPosition.y;
-        tooltipDiv.position(adjX,adjY);
-        tooltipDiv.mouseOver(function(){
-          networkScene.nodeHover = true;
-        });
-        tooltipDiv.mouseOut(function(){
-          networkScene.nodeHover = false
-        });
+        createToolTip(currNode.type,currNode.id);
       } else {
         document.getElementById(`${currNode.id}-tooltip`).remove();
       }
@@ -595,7 +616,6 @@ function mousePressed(e){
         console.log("error: no node type selected");
     }
   }
-  //console.log(networkScene.selectedNode);
 }
 
 function generateDiv(id,x,y){
@@ -651,7 +671,28 @@ function toggleNode(e) {
   }
 }
 
-function createTooltip(nodeType,nodeID){
+function createToolTip(type, id){
+  var adjustedPosition,adjX,adjY;
+
+  tooltipDiv = createDiv(createTooltipDiv(type,id));
+  tooltipDiv.addClass("tooltip");
+  tooltipDiv.id(`${id}-tooltip`);
+  adjustedPosition = checkScreenOut(mouseX,
+                                    mouseY,
+                                    tooltipDiv.size().width,
+                                    tooltipDiv.size().height);
+  adjX = adjustedPosition.x;
+  adjY = adjustedPosition.y;
+  tooltipDiv.position(adjX,adjY);
+  tooltipDiv.mouseOver(function(){
+    networkScene.nodeHover = true;
+  });
+  tooltipDiv.mouseOut(function(){
+    networkScene.nodeHover = false
+  });
+}
+
+function createTooltipDiv(nodeType,nodeID){
   var nodeDescription;
   if(nodeType == "host"){
     nodeDescription = `<div id="node-description">
@@ -671,8 +712,6 @@ function createTooltip(nodeType,nodeID){
                         <button id="dlLayer"    class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Data Link</button>
                         <button id="phyLayer"   class="layer-button" onClick=layerButtonClick(id,'${nodeID}')>Physical</button>
                        </div>`;
-  } else if(nodeType == "link"){
-    //implement Link node class first
   }
   var nodeName = `<h3 id="tooltip-title">${nodeID}</h3>`,
       createLinkButton = `<button id="link-button" class="button tooltip-button" onClick=createLink('${nodeID}') alt="close tooltip.">create new link</button>`,
@@ -688,6 +727,39 @@ function createTooltip(nodeType,nodeID){
      <br/>
      ${removeNodeButton}`
   );
+}
+
+function linkToolTip(id){
+  var linkObj, closeTTButton, toggleFaulty, linkToolTipDiv;
+  linkObj = nodeFromID(id);
+  closeTTButton = `<button id="close-tooltip-button"
+                  class="button tooltip-button"
+                  onClick=closeTooltip('${id}')></button>`
+  toggleFaultyButton = `<button id="faulty-button"
+                  class="button tooltip-button"
+                  onClick=toggleFaulty('${id}')>make faulty</button>`
+
+  console.log(linkObj);
+  linkToolTipDiv = createDiv(`
+    <div class="link-tooltip">
+      <div id="link-tooltip=header">
+      ${id}
+      ${closeTTButton}
+
+      </div>
+      ${toggleFaultyButton}
+    </div>
+    `)
+  linkToolTipDiv.id(`${id}-tooltip`);
+  linkToolTipDiv.addClass("tooltip");
+  linkToolTipDiv.position(mouseX,mouseY);
+
+}
+
+function toggleFaulty(id){
+  var obj = nodeFromID(id);
+  obj.faulty = !obj.faulty;
+  console.log(obj.faulty);
 }
 
 function createPageHeader(){
@@ -741,15 +813,24 @@ function listConnections(id){
 }
 
 function closeTooltip(id){
-  var pNode, tempArr;
-  document.getElementById(id+"-tooltip").remove();
-  for(var i = 0; i < networkScene.nodeObjs.length; i++){
-    if(networkScene.nodeObjs[i].id == id){
-      pNode = networkScene.nodeObjs[i];
-    }
+  var pNode, pLink, tempArr;
+  if(id.match(/link/)){
+    pLink = networkScene.linkObjs.find((obj) => {
+      return obj.id == id;
+    });
+    pLink.tooltipVisible = false;
+  } else {
+    pNode = networkScene.nodeObjs.find((obj) => {
+      return obj.id == id;
+    });
+    pNode.tooltipVisible = false;
   }
-  pNode.tooltipVisible = false;
+
+  document.getElementById(id+"-tooltip").remove();
   networkScene.nodeHover = false;
+  if(networkScene.appLayoverOpen){
+    closeApplicationLayover();
+  }
 }
 
 function removeNode(id){
@@ -811,11 +892,11 @@ function clearNodes(newScene){
   while(links.length){
     links[0].remove();
   }
-  /*
+
   hostID = 0;
   routerID = 0;
   linkID = 0;
-  */
+
   networkScene = {
     sceneID: newScene ? ++networkScene.sceneID : networkScene.sceneID,
     presetDrawn: null,
@@ -835,7 +916,8 @@ function clearNodes(newScene){
     linkDivs: [],
     statusBox:null,
     statusHover: false,
-    relativeCoords: null
+    relativeCoords: null,
+    appLayoverOpen: false,
   }
   updateStatusBox();
 }
@@ -882,7 +964,9 @@ function divFromID(id){
 function layerButtonClick(id,parentNode){
   switch(id){
     case "appLayer":
-      console.log(`${parentNode}:${id} clicked`)
+      if(!networkScene.appLayoverOpen){
+        applicationLayover(parentNode);
+      }
       break;
     case "presLayer":
       console.log(id + " clicked");
@@ -903,6 +987,75 @@ function layerButtonClick(id,parentNode){
       console.log(id + " clicked");
       break;
   }
+}
+
+function applicationLayover(id){
+  networkScene.appLayoverOpen = true;
+  var appParent = nodeFromID(id);
+
+  var appLayover = createDiv(`
+        <div id="application-layover-header">
+          <h3 id="application-layover-title">Application Layer: ${appParent.id}</h3>
+          <button id="close-app-button"
+                  class="button tooltip-button"
+                  onClick=closeApplicationLayover()></button>
+        </div>
+        <div id="application-layover-content">
+          <div id="message-fields">
+            <button id="list-nodes-button" class="button" onClick=getConnectedHosts('${id}')>List Connected Hosts</button>
+            <div id="list-nodes"></div>
+            <form onsubmit="pushMessage1(); return false;">
+              <div id="message-field-1">
+                <input id="message-input-1" class="message-input" type="text"></input>
+                <input type="submit" value="Queue Message One"></input>
+              </div>
+            </form>
+            <form onsubmit="pushMessage2(); return false;">
+              <div id="message-field-2">
+                <input id="message-input-2" class="message-input" type="text"></input>
+                <input type="submit" value="Queue Message Two"></input>
+              </div>
+            </form>
+            <button id="send-messages" class="button" onClick=sendMessages()>Send</button>
+          <div>
+        </div>
+        </div>
+    `);
+  appLayover.size(300,278);
+  appLayover.id("application-layover");
+  var parentTooltip = document.getElementById(`${id}-tooltip`);
+  var x0 = parentTooltip.getBoundingClientRect().left;
+  var y0 = parentTooltip.getBoundingClientRect().top;
+  var offsetCoords = [(appParent.coords.x ), appParent.coords.y-50];
+  appLayover.position(x0+213,y0);
+}
+function getConnectedHosts(id){
+  //TODO finish implementing this
+  var currentVertex = null,
+      unvisitedVertices = null,
+      visitedVerticies = [];
+  currentVertex = networkGraph.adjList.find(v => {
+    return v.node == id;
+  })
+  unvisitedVertices = networkGraph.adjList.filter(v =>{
+    return v != currentVertex;
+  })
+  console.log(currentVertex,unvisitedVertices)
+}
+function pushMessage1(){
+  var msg1 = document.getElementById("message-input-1");
+  console.log(msg1.value);
+}
+function pushMessage2(){
+  var msg2 = document.getElementById("message-input-2");
+  console.log(msg2.value);
+}
+function sendMessages(){
+  console.log("sending messages!");
+}
+function closeApplicationLayover(){
+  document.getElementById("application-layover").remove();
+  networkScene.appLayoverOpen = false;
 }
 
 function checkScreenOut(x,y,w,h){
